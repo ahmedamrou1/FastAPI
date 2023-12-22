@@ -1,0 +1,1 @@
+This project is my first attempt at making an API. The reason I chose this project is that APIs act as the interface between frontends and backends, and I have always been interested in how they interact. This API allowed me to start with a simple idea and use it to learn about API, database, and frontend development.
