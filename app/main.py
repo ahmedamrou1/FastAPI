@@ -8,12 +8,9 @@ from random import randrange
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import time
+
 app = FastAPI()
 
-
-data = [{"name": "name of person", "age": "age of person", "gender": "gender of person", "id": "0"}, 
-        {"name": "Ahmed Amrou", "age": "20", "gender": "male", "id": "1"},
-        {"name": "Robert Stevens", "age": "64", "gender": "male", "id": "2"}]
 
 
 
@@ -27,23 +24,14 @@ while True:
         print(f"Error connecting to database: {error}")
         time.sleep(2)
 
-def find_name(id):
-    for p in data:
-        if p["id"] == str(id):
-            return str(p)
-
-        
-def find_index_name(id):
-    for i, p in enumerate(data):
-        if p["id"] == str(id):
-            return str(i)
-
 
 class Person(BaseModel):
-    name: str
-    age: int
-    gender: str
-    id: Optional[int] = None
+    first_name: str
+    last_name: str
+    birthday: str
+    gender: Optional[str]
+    email: str
+    phone_number: Optional[str]
 
 @app.get("/")
 def root():
@@ -56,30 +44,37 @@ def view_people():
     return people
 
 @app.post("/people", status_code=status.HTTP_201_CREATED)
-def add_person(new_person: Person):
-    new_person_dict = new_person.model_dump()
-    new_person_dict["id"] = randrange(1, 1000000000)
-    return new_person_dict
+def add_person(person: Person):
+    cursor.execute("""INSERT INTO people (first_name, last_name, birthday, gender, email, phone_number) VALUES (%s, %s, %s, %s, %s, %s) RETURNING * """,(person.first_name, person.last_name, person.birthday, person.gender, person.email, person.phone_number))
+    new_person = cursor.fetchone()
+    conn.commit()
+    return new_person
 
 @app.get("/people/{id}")
-def view_person(id: int):
-    person = find_name(id)
-    if not person:
+def view_person(id: str):
+    try: 
+        cursor.execute("""SELECT * FROM people WHERE id = %s""", (str(id)))   
+        return cursor.fetchone()
+    except TypeError:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
-    return person
+    except psycopg2.errors.InvalidTextRepresentation:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid post id")
+    
 
 @app.delete("/people/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_person(id):
-    person_index = find_index_name(id)
-    if not person_index:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
-    data.pop(int(person_index))
-    return Response(status_code=status.HTTP_204_NO_CONTENT)
+def delete_person(id: str):
+    try:
+        cursor.execute("""DELETE FROM people WHERE id = %s""", (str(id),))
+        cursor.fetchone()
+        conn.commit()
+        print("Post sucessfully deleted")
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    except (psycopg2.ProgrammingError, psycopg2.errors.InvalidTextRepresentation):
+        cursor.execute("ROLLBACK")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid post id")
 
 @app.put("/people/{id}", status_code= status.HTTP_205_RESET_CONTENT)
 def update_person(id: int, new_content: Person):
-    person_index = find_index_name(id)
-    if not person_index:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
-    data[int(person_index)]["id"],data[int(person_index)] = str(id), new_content.model_dump()
-    return data
+    cursor.execute("""UPDATE people SET first_name = %s, last_name = %s, birthday = %s, gender = %s, email = %s, phone_number = %s RETURNING * """, (new_content.first_name, new_content.last_name, new_content.birthday, new_content.birthday, new_content.phone_number))
+    updated = cursor.fetchone()
+    return updated
