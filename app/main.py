@@ -1,10 +1,10 @@
 #API to add people and their info to a database as well as retrieve the info
 
 
-import models
+import models, schemas
 from database import engine, get_db
 from email.policy import HTTP
-from typing import Optional
+from typing import Optional, List
 from fastapi import Body, FastAPI, Response, status, HTTPException, Depends
 from pydantic import BaseModel
 from random import randrange
@@ -29,13 +29,7 @@ while True:
         time.sleep(2)
 
 
-class Person(BaseModel):
-    first_name: str
-    last_name: str
-    birthday: str
-    gender: Optional[str]
-    email: str
-    phone_number: Optional[str]
+
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -44,13 +38,13 @@ models.Base.metadata.create_all(bind=engine)
 def root():
     return "Frontpage"
 
-@app.get("/people")
+@app.get("/people", response_model=List[schemas.Person])
 def test_posts(db: Session = Depends(get_db)):
     people = db.query(models.Person).all()
     return people
 
-@app.post("/people", status_code=status.HTTP_201_CREATED)
-def add_person(person: Person, db: Session = Depends(get_db)):
+@app.post("/people", status_code=status.HTTP_201_CREATED, response_model=schemas.Person)
+def add_person(person: schemas.CreatePerson, db: Session = Depends(get_db)):
    
    new_person = models.Person(**person.model_dump())
    db.add(new_person)
@@ -58,34 +52,35 @@ def add_person(person: Person, db: Session = Depends(get_db)):
    db.refresh(new_person)
    return new_person
 
-@app.get("/people/{id}")
-def view_person(id: str): 
-    cursor.execute("""SELECT * FROM people WHERE id = %s""", (str(id),))   
-    person = cursor.fetchone()
-    if not person:
+@app.get("/people/{id}", response_model=schemas.PersonResponse)
+def view_person(id: str,db: Session = Depends(get_db)): 
+    result = db.query(models.Person).filter(models.Person.id == id).first()
+    if not result:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid post id")
-    return person
+    return result
     
 
 @app.delete("/people/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_person(id: str):
-    cursor.execute("""DELETE FROM people WHERE id = %s RETURNING *""", (str(id),))
-    person = cursor.fetchone()
-    if not person:
+def delete_person(id: str, db: Session = Depends(get_db)):
+    result = db.query(models.Person).filter(models.Person.id == id)
+    if not result.first():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid post id")
-    conn.commit()
-    print("Post sucessfully deleted")
+    result.delete(synchronize_session=False)
+    db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@app.put("/people/{id}", status_code= status.HTTP_205_RESET_CONTENT)
-def update_person(id: str, new_content: Person):
-    cursor.execute("""UPDATE people SET first_name = %s, last_name = %s, gender = %s, birthday = %s, email = %s, phone_number = %s WHERE id = %s RETURNING *""", (new_content.first_name, new_content.last_name, new_content.gender, new_content.birthday, new_content.birthday, new_content.phone_number, str(id)))
-    conn.commit()
-    person = cursor.fetchone()
+@app.put("/people/{id}", status_code= status.HTTP_205_RESET_CONTENT, response_model=schemas.PersonResponse)
+def update_person(id: str, new_content: schemas.UpdatePerson,db: Session = Depends(get_db)):
+    query = db.query(models.Person).filter(models.Person.id == id)
+    person = query.first()
     if not person:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid post id")
+    query.update(new_content.model_dump(), synchronize_session=False)
+    db.commit()
+    person = query.first()
     return person
+    
 
 
 #5:15:56
