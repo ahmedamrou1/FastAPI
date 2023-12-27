@@ -1,4 +1,4 @@
-import models, schemas, utils
+import models, schemas, utils, routers.oauth2 as oauth2
 from sqlalchemy.orm import Session
 from database import engine, get_db
 from fastapi import Body, FastAPI, Response, status, HTTPException, Depends, APIRouter
@@ -16,8 +16,8 @@ def test_posts(db: Session = Depends(get_db)):
     return people
 
 @router.post("/", status_code=status.HTTP_201_CREATED, response_model=schemas.Person)
-def add_person(person: schemas.CreatePerson, db: Session = Depends(get_db)):
-   
+def add_person(person: schemas.CreatePerson, db: Session = Depends(get_db), user_id: int = Depends(oauth2.get_current_user)):
+   print(user_id)
    new_person = models.Person(**person.model_dump())
    db.add(new_person)
    db.commit()
@@ -33,7 +33,8 @@ def view_person(id: str,db: Session = Depends(get_db)):
     
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_person(id: str, db: Session = Depends(get_db)):
+def delete_person(id: str, db: Session = Depends(get_db), user: int = Depends(oauth2.get_current_user)):
+    print(user)
     result = db.query(models.Person).filter(models.Person.id == id)
     if not result.first():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invalid post id")
@@ -43,7 +44,8 @@ def delete_person(id: str, db: Session = Depends(get_db)):
 
 
 @router.put("/{id}", status_code= status.HTTP_205_RESET_CONTENT, response_model=schemas.PersonResponse)
-def update_person(id: str, new_content: schemas.UpdatePerson,db: Session = Depends(get_db)):
+def update_person(id: str, new_content: schemas.UpdatePerson,db: Session = Depends(get_db), user: int = Depends(oauth2.get_current_user)):
+    print(user)
     query = db.query(models.Person).filter(models.Person.id == id)
     person = query.first()
     if not person:

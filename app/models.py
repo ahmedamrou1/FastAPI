@@ -1,10 +1,10 @@
 from database import Base
-from sqlalchemy import TIMESTAMP, Column, Date, Integer, String, column, text
+from sqlalchemy import TIMESTAMP, Column, Date, ForeignKey, Integer, String, column, text
 
 
 class Person(Base):
     __tablename__ = "people"
-    id = Column(Integer, primary_key=True, nullable=False)
+    id = Column(Integer, primary_key=True, nullable=False) 
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
     birthday = Column(String, nullable=False)
