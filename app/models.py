@@ -1,5 +1,5 @@
-from database import Base
-from sqlalchemy import TIMESTAMP, Column, Date, ForeignKey, Integer, String, column, text
+from app.database import Base
+from sqlalchemy import TIMESTAMP, Column, Integer, String, text
 
 
 class Person(Base):

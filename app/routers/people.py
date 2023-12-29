@@ -1,4 +1,4 @@
-import models, schemas, utils, routers.oauth2 as oauth2
+import models, schemas, utils, oauth2
 from sqlalchemy.orm import Session
 from database import engine, get_db
 from fastapi import Body, FastAPI, Response, status, HTTPException, Depends, APIRouter
