@@ -18,4 +18,3 @@ settings = Settings()
 
 
 
-#last left off trying to figure out alembic bruh 10:42:09
