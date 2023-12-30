@@ -9,3 +9,5 @@ This project does not include front-end functionality quite yet, as developing t
 *ORM usage through SQLAlchemy to reduce the raw SQL in code (and lessen the chance of SQL injection)
 
 This is obviously not Google or MacOS, but it was an excellent introduction to API development and showcases the ability to push through challenges (lots and lots of challenges) as well as follow through until the end of a project.
+
+Note: I forgot to initially include a .gitignore so the venv, pycache, and other unneccesary files may be included in the repo.
